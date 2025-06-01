@@ -7,13 +7,559 @@
     <meta name="mobile-web-app-capable" content="yes">
     <title>Reaktionstest - Lampenspiel</title>
     <style>
-        /* CSS STYLES OMITTED FOR BREVITY IN THIS COMMENT */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: 95%;
+            max-width: 500px;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 15px;
+            border-radius: 10px;
+            text-align: center;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            opacity: 0.8;
+            margin-bottom: 3px;
+        }
+
+        .stat-value {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .lamp-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 10px;
+            flex-grow: 1;
+            align-content: center;
+        }
+
+        .lamp {
+            aspect-ratio: 1;
+            background: radial-gradient(circle, #333 0%, #111 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .lamp::before {
+            content: '';
+            position: absolute;
+            top: 20%;
+            left: 20%;
+            width: 30%;
+            height: 30%;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            filter: blur(10px);
+        }
+
+        .lamp.active {
+            background: radial-gradient(circle, #ffeb3b 0%, #ffc107 50%, #ff9800 100%);
+            box-shadow: 0 0 30px #ffeb3b, 0 0 50px #ffc107;
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        .lamp.wrong {
+            animation: shake 0.5s ease-in-out;
+            background: radial-gradient(circle, #f44336 0%, #d32f2f 100%);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            font-size: 1em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            -webkit-appearance: none;
+            width: 100%;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .highscore {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .highscore h2 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .highscore-list {
+            list-style: none;
+            font-size: 0.9em;
+        }
+
+        .highscore-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            margin-bottom: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+
+        .highscore-rank {
+            font-weight: bold;
+            color: #ffeb3b;
+        }
+
+        .message {
+            text-align: center;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            min-height: 25px;
+        }
+
+        .difficulty {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .difficulty button {
+            padding: 10px 15px;
+            font-size: 0.9em;
+            flex: 1;
+        }
+
+        .difficulty button.active {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+
+        /* Landscape-Modus Anpassungen */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .game-container {
+                height: 95vh;
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 1.4em;
+                margin-bottom: 5px;
+            }
+            
+            .stats {
+                margin-bottom: 5px;
+            }
+            
+            .lamp-grid {
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+            
+            .highscore {
+                max-height: 100px;
+            }
+        }
+
+        /* Tablet Anpassungen */
+        @media (min-width: 768px) {
+            .game-container {
+                max-width: 600px;
+            }
+            
+            .lamp {
+                max-width: 150px;
+                max-height: 150px;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- HTML BODY CONTENT OMITTED FOR BREVITY -->
+    <div class="game-container">
+        <h1>⚡ Reaktionstest ⚡</h1>
+        
+        <div class="message" id="message">Tippe auf "Start" um zu beginnen!</div>
+        
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-label">Aktuelle</div>
+                <div class="stat-value" id="currentTime">0 ms</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Beste</div>
+                <div class="stat-value" id="bestTime">0 ms</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Runde</div>
+                <div class="stat-value" id="round">0/10</div>
+            </div>
+        </div>
+
+        <div class="difficulty">
+            <button onclick="setDifficulty('easy')" id="easyBtn">Einfach</button>
+            <button onclick="setDifficulty('medium')" id="mediumBtn" class="active">Mittel</button>
+            <button onclick="setDifficulty('hard')" id="hardBtn">Schwer</button>
+        </div>
+
+        <div class="lamp-grid" id="lampGrid">
+            <!-- Lampen werden hier dynamisch erstellt -->
+        </div>
+
+        <div class="controls">
+            <button id="startBtn" onclick="startGame()">Start</button>
+            <button id="resetBtn" onclick="resetHighscore()">Highscore löschen</button>
+        </div>
+
+        <div class="highscore">
+            <h2>🏆 Highscore 🏆</h2>
+            <ul class="highscore-list" id="highscoreList">
+                <!-- Highscore-Einträge werden hier angezeigt -->
+            </ul>
+        </div>
+    </div>
+
     <script>
-        // JAVASCRIPT CONTENT OMITTED FOR BREVITY
+        // Spielvariablen
+        let gameActive = false;
+        let startTime = 0;
+        let currentRound = 0;
+        let totalRounds = 10;
+        let activeLamp = null;
+        let scores = [];
+        let highscores = [];
+        let difficulty = 'medium';
+        let lampTimeout;
+        
+        const difficulties = {
+            easy: { lamps: 6, minDelay: 1500, maxDelay: 3000 },
+            medium: { lamps: 9, minDelay: 1000, maxDelay: 2500 },
+            hard: { lamps: 12, minDelay: 500, maxDelay: 2000 }
+        };
+
+        // Touch-Events optimieren
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.classList.contains('lamp')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Highscores aus localStorage laden
+        function loadHighscores() {
+            const saved = localStorage.getItem('reactionHighscores');
+            if (saved) {
+                highscores = JSON.parse(saved);
+            }
+            updateHighscoreDisplay();
+        }
+
+        // Highscores speichern
+        function saveHighscores() {
+            localStorage.setItem('reactionHighscores', JSON.stringify(highscores));
+        }
+
+        // Lampen erstellen
+        function createLamps() {
+            const grid = document.getElementById('lampGrid');
+            grid.innerHTML = '';
+            const lampCount = difficulties[difficulty].lamps;
+            
+            // Grid-Spalten anpassen
+            const cols = Math.min(Math.ceil(Math.sqrt(lampCount)), 4);
+            grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            
+            for (let i = 0; i < lampCount; i++) {
+                const lamp = document.createElement('div');
+                lamp.className = 'lamp';
+                lamp.id = `lamp-${i}`;
+                
+                // Touch-optimiert
+                lamp.addEventListener('click', () => lampClicked(i));
+                lamp.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    lampClicked(i);
+                }, { passive: false });
+                
+                grid.appendChild(lamp);
+            }
+        }
+
+        // Schwierigkeit einstellen
+        function setDifficulty(level) {
+            difficulty = level;
+            document.querySelectorAll('.difficulty button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`${level}Btn`).classList.add('active');
+            createLamps();
+            resetGame();
+        }
+
+        // Spiel starten
+        function startGame() {
+            gameActive = true;
+            currentRound = 0;
+            scores = [];
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('message').textContent = 'Warte auf die leuchtende Lampe...';
+            
+            // Vibration für Spielstart (falls unterstützt)
+            if ('vibrate' in navigator) {
+                navigator.vibrate(50);
+            }
+            
+            nextRound();
+        }
+
+        // Nächste Runde
+        function nextRound() {
+            if (currentRound >= totalRounds) {
+                endGame();
+                return;
+            }
+            
+            currentRound++;
+            document.getElementById('round').textContent = `${currentRound}/${totalRounds}`;
+            
+            // Alle Lampen ausschalten
+            document.querySelectorAll('.lamp').forEach(lamp => {
+                lamp.classList.remove('active', 'wrong');
+            });
+            
+            // Zufällige Verzögerung
+            const { minDelay, maxDelay } = difficulties[difficulty];
+            const delay = Math.random() * (maxDelay - minDelay) + minDelay;
+            
+            lampTimeout = setTimeout(() => {
+                if (!gameActive) return;
+                
+                // Zufällige Lampe aktivieren
+                const lampCount = difficulties[difficulty].lamps;
+                const randomLamp = Math.floor(Math.random() * lampCount);
+                activeLamp = randomLamp;
+                document.getElementById(`lamp-${randomLamp}`).classList.add('active');
+                startTime = Date.now();
+                document.getElementById('message').textContent = 'Tippe schnell!';
+                
+                // Vibration für neue Lampe
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(30);
+                }
+            }, delay);
+        }
+
+        // Lampe angeklickt
+        function lampClicked(lampId) {
+            if (!gameActive || activeLamp === null) return;
+            
+            if (lampId === activeLamp) {
+                // Richtige Lampe
+                const reactionTime = Date.now() - startTime;
+                scores.push(reactionTime);
+                document.getElementById('currentTime').textContent = `${reactionTime} ms`;
+                document.getElementById('message').textContent = `Gut! ${reactionTime} ms`;
+                
+                // Beste Zeit aktualisieren
+                const bestTime = Math.min(...scores);
+                document.getElementById('bestTime').textContent = `${bestTime} ms`;
+                
+                // Erfolgs-Vibration
+                if ('vibrate' in navigator) {
+                    navigator.vibrate([50, 50, 50]);
+                }
+                
+                activeLamp = null;
+                setTimeout(nextRound, 1000);
+            } else {
+                // Falsche Lampe
+                document.getElementById(`lamp-${lampId}`).classList.add('wrong');
+                document.getElementById('message').textContent = 'Falsche Lampe!';
+                
+                // Fehler-Vibration
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(200);
+                }
+            }
+        }
+
+        // Spiel beenden
+        function endGame() {
+            gameActive = false;
+            clearTimeout(lampTimeout);
+            document.getElementById('startBtn').disabled = false;
+            
+            if (scores.length > 0) {
+                const avgTime = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+                const bestTime = Math.min(...scores);
+                
+                document.getElementById('message').textContent = 
+                    `Fertig! Ø ${avgTime} ms, Beste: ${bestTime} ms`;
+                
+                // Highscore hinzufügen
+                const name = prompt('Super! Dein Name:') || 'Anonym';
+                highscores.push({
+                    name: name,
+                    time: avgTime,
+                    best: bestTime,
+                    date: new Date().toLocaleDateString('de-DE'),
+                    difficulty: difficulty
+                });
+                
+                // Sortieren und nur Top 10 behalten
+                highscores.sort((a, b) => a.time - b.time);
+                highscores = highscores.slice(0, 10);
+                
+                saveHighscores();
+                updateHighscoreDisplay();
+            }
+        }
+
+        // Highscore-Anzeige aktualisieren
+        function updateHighscoreDisplay() {
+            const list = document.getElementById('highscoreList');
+            list.innerHTML = '';
+            
+            highscores.forEach((score, index) => {
+                const item = document.createElement('li');
+                item.className = 'highscore-item';
+                item.innerHTML = `
+                    <span class="highscore-rank">#${index + 1}</span>
+                    <span>${score.name}</span>
+                    <span>${score.time} ms</span>
+                `;
+                list.appendChild(item);
+            });
+            
+            if (highscores.length === 0) {
+                list.innerHTML = '<li class="highscore-item">Noch keine Einträge</li>';
+            }
+        }
+
+        // Spiel zurücksetzen
+        function resetGame() {
+            gameActive = false;
+            clearTimeout(lampTimeout);
+            currentRound = 0;
+            scores = [];
+            activeLamp = null;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('currentTime').textContent = '0 ms';
+            document.getElementById('bestTime').textContent = '0 ms';
+            document.getElementById('round').textContent = '0/10';
+            document.getElementById('message').textContent = 'Tippe auf "Start" um zu beginnen!';
+            
+            document.querySelectorAll('.lamp').forEach(lamp => {
+                lamp.classList.remove('active', 'wrong');
+            });
+        }
+
+        // Highscore zurücksetzen
+        function resetHighscore() {
+            if (confirm('Wirklich alle Highscores löschen?')) {
+                highscores = [];
+                saveHighscores();
+                updateHighscoreDisplay();
+            }
+        }
+
+        // Verhindere Zoomen
+        document.addEventListener('gesturestart', function(e) {
+            e.preventDefault();
+        });
+
+        // Initialisierung
+        createLamps();
+        loadHighscores();
     </script>
 </body>
 </html>
